@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import type React from 'react';
 
 interface CountUpProps {
   end: number;
@@ -9,9 +10,10 @@ interface CountUpProps {
   suffix?: string;
   decimals?: number;
   className?: string;
+  style?: React.CSSProperties;
 }
 
-export function CountUp({ end, duration = 1500, prefix = '', suffix = '', decimals = 2, className }: CountUpProps) {
+export function CountUp({ end, duration = 1500, prefix = '', suffix = '', decimals = 2, className, style }: CountUpProps) {
   const [value, setValue] = useState(0);
   const startTime = useRef<number | null>(null);
   const animRef = useRef<number | null>(null);
@@ -34,16 +36,17 @@ export function CountUp({ end, duration = 1500, prefix = '', suffix = '', decima
     maximumFractionDigits: decimals,
   }).format(value);
 
-  return <span className={className}>{prefix}{formatted}{suffix}</span>;
+  return <span className={className} style={style}>{prefix}{formatted}{suffix}</span>;
 }
 
-export function CurrencyDisplay({ value, className }: { value: number; className?: string }) {
+export function CurrencyDisplay({ value, className, style }: { value: number; className?: string; style?: React.CSSProperties }) {
   return (
     <CountUp
       end={value}
       prefix="R$ "
       decimals={2}
       className={className}
+      style={style}
     />
   );
 }

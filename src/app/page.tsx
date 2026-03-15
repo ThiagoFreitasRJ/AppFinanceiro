@@ -2,8 +2,9 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase/client';
 import { motion } from 'framer-motion';
+import { supabase } from '@/lib/supabase/client';
+import { AnimatedBackground } from '@/components/ui/AnimatedBackground';
 
 export default function Home() {
   const router = useRouter();
@@ -16,20 +17,21 @@ export default function Home() {
   }, [router]);
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
+    <div className="min-h-screen bg-[#070710] flex items-center justify-center relative overflow-hidden">
+      <AnimatedBackground />
       <motion.div
-        className="flex flex-col items-center gap-4"
-        initial={{ opacity: 0, scale: 0.8 }}
+        className="flex flex-col items-center gap-5 relative z-10"
+        initial={{ opacity: 0, scale: 0.85 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.4 }}
       >
-        <div className="w-16 h-16 bg-[#0066FF] rounded-2xl flex items-center justify-center text-2xl font-bold text-white">
-          F
+        <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl flex items-center justify-center text-2xl shadow-xl shadow-blue-500/25">
+          💰
         </div>
         <motion.div
-          className="w-6 h-6 border-2 border-[#0066FF] border-t-transparent rounded-full"
+          className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full"
           animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+          transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
         />
       </motion.div>
     </div>
