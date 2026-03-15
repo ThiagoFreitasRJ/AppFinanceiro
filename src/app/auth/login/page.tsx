@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { AnimatedBackground } from '@/components/ui/AnimatedBackground';
@@ -14,6 +15,8 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
   const { signIn } = useAuth();
   const router = useRouter();
 
@@ -22,7 +25,15 @@ export default function LoginPage() {
     setLoading(true);
     const { error } = await signIn(email, password);
     if (error) {
-      toast.error('Email ou senha inválidos');
+      const msg = error.message?.toLowerCase() ?? '';
+      if (msg.includes('email not confirmed') || msg.includes('not confirmed')) {
+        setNeedsConfirmation(true);
+        toast.error('Confirme seu email antes de entrar.', { duration: 5000 });
+      } else if (msg.includes('invalid login') || msg.includes('invalid credentials') || msg.includes('wrong password')) {
+        toast.error('Email ou senha incorretos');
+      } else {
+        toast.error(error.message || 'Erro ao entrar');
+      }
     } else {
       toast.success('Bem-vindo de volta! 👋');
       router.push('/dashboard');
@@ -80,6 +91,27 @@ export default function LoginPage() {
               Entrar
             </Button>
           </form>
+
+          {needsConfirmation && (
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 text-sm text-amber-300 space-y-2">
+              <p className="font-medium">📧 Email não confirmado</p>
+              <p className="text-xs text-amber-400/70">Verifique sua caixa de entrada (e spam). Ou reenvie o email de confirmação.</p>
+              <button
+                onClick={async () => {
+                  if (!email) { toast.error('Digite seu email primeiro'); return; }
+                  setResendLoading(true);
+                  const { error: resendError } = await supabase.auth.resend({ type: 'signup', email });
+                  setResendLoading(false);
+                  if (resendError) toast.error(resendError.message);
+                  else toast.success('Email de confirmação reenviado!');
+                }}
+                disabled={resendLoading}
+                className="text-xs text-amber-300 underline hover:no-underline disabled:opacity-50"
+              >
+                {resendLoading ? 'Enviando...' : 'Reenviar email de confirmação'}
+              </button>
+            </div>
+          )}
 
           <p className="text-center text-sm text-[#475569] pt-1">
             Não tem conta?{' '}
