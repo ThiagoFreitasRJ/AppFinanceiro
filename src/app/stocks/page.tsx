@@ -198,13 +198,18 @@ export default function StocksPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-sm text-[#e2e8f0]">{stock.ticker}</span>
-                          <span className={`text-xs flex items-center gap-0.5 font-medium ${isDayUp ? 'text-emerald-400' : 'text-red-400'}`}>
-                            {isDayUp ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-                            {dayChange >= 0 ? '+' : ''}{dayChange.toFixed(2)}%
+                          <span className={`text-xs flex items-center gap-0.5 font-medium ${isUp ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {isUp ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                            {stock.profitLossPercent >= 0 ? '+' : ''}{stock.profitLossPercent.toFixed(2)}%
                           </span>
                         </div>
                         <p className="text-xs text-[#475569] mt-0.5 font-mono-numbers">
                           {stock.quantity} cotas · P.M. {formatCurrency(stock.avg_price)}
+                          {dayChange !== 0 && (
+                            <span className={`ml-2 ${isDayUp ? 'text-emerald-500/60' : 'text-red-500/60'}`}>
+                              hoje: {dayChange >= 0 ? '+' : ''}{dayChange.toFixed(2)}%
+                            </span>
+                          )}
                         </p>
                       </div>
 
