@@ -57,6 +57,7 @@ export default function StocksPage() {
   }));
 
   const isProfit = totalProfitLoss >= 0;
+  const isValorized = totalCurrentValue >= totalInvested;
 
   return (
     <AppLayout>
@@ -84,9 +85,9 @@ export default function StocksPage() {
               <p className="text-xs text-[#475569] font-semibold uppercase tracking-widest mb-2">Investido</p>
               <p className="text-lg font-bold text-white font-mono-numbers">{formatCurrency(totalInvested)}</p>
             </div>
-            <div className="bg-[#0f0f1a] border border-[#1e1e32] rounded-2xl p-5">
+            <div className={`border rounded-2xl p-5 ${isValorized ? 'bg-blue-500/5 border-blue-500/15' : 'bg-red-500/5 border-red-500/15'}`}>
               <p className="text-xs text-[#475569] font-semibold uppercase tracking-widest mb-2">Valor Atual</p>
-              <p className="text-lg font-bold text-blue-400 font-mono-numbers">{formatCurrency(totalCurrentValue)}</p>
+              <p className={`text-lg font-bold font-mono-numbers ${isValorized ? 'text-blue-400' : 'text-red-400'}`}>{formatCurrency(totalCurrentValue)}</p>
             </div>
             <div className={`border rounded-2xl p-5 ${isProfit ? 'bg-emerald-500/5 border-emerald-500/15' : 'bg-red-500/5 border-red-500/15'}`}>
               <p className="text-xs text-[#475569] font-semibold uppercase tracking-widest mb-2">Lucro/Prejuízo</p>
