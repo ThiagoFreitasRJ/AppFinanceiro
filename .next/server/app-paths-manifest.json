@@ -1,0 +1,15 @@
+{
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/auth/login/page": "app/auth/login/page.js",
+  "/auth/register/page": "app/auth/register/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/economy/page": "app/economy/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/fixed-expenses/page": "app/fixed-expenses/page.js",
+  "/goals/page": "app/goals/page.js",
+  "/page": "app/page.js",
+  "/profile/page": "app/profile/page.js",
+  "/stocks/page": "app/stocks/page.js",
+  "/transactions/page": "app/transactions/page.js"
+}

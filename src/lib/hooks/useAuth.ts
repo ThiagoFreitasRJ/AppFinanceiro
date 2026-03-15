@@ -1,5 +1,3 @@
-'use client';
-
 import { useEffect, useState } from 'react';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { supabase } from '../supabase/client';
@@ -40,26 +38,12 @@ export function useAuth() {
   async function signUp(email: string, password: string, name: string) {
     const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) return { error };
-
     if (data.user) {
       const { error: insertError } = await supabase.from('users').insert({
-        id: data.user.id,
-        email,
-        name,
-        xp: 0,
-        level: 1,
-        savings_goal: 0,
+        id: data.user.id, email, name, xp: 0, level: 1, savings_goal: 0,
       });
-
-      if (insertError) {
-        // Tabelas não criadas ainda
-        const msg = insertError.message.includes('does not exist')
-          ? 'Execute o SQL de migração no Supabase antes de criar conta.'
-          : insertError.message;
-        return { error: { message: msg } as Error };
-      }
+      if (insertError) return { error: { message: insertError.message } as Error };
     }
-
     return { error: null };
   }
 
@@ -69,12 +53,7 @@ export function useAuth() {
 
   async function updateProfile(updates: Partial<User>) {
     if (!user) return;
-    const { data } = await supabase
-      .from('users')
-      .update(updates)
-      .eq('id', user.id)
-      .select()
-      .single();
+    const { data } = await supabase.from('users').update(updates).eq('id', user.id).select().single();
     if (data) setProfile(data);
   }
 

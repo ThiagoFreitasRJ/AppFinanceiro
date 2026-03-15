@@ -7,19 +7,11 @@ export function formatCurrency(value: number): string {
 }
 
 export function formatPercent(value: number): string {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'percent',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value / 100);
+  return value.toFixed(2) + '%';
 }
 
 export function formatDate(date: string | Date): string {
   return new Intl.DateTimeFormat('pt-BR').format(new Date(date));
-}
-
-export function cn(...classes: (string | undefined | null | boolean)[]): string {
-  return classes.filter(Boolean).join(' ');
 }
 
 export function calculateXP(amount: number): number {

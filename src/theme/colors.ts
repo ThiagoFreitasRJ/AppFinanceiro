@@ -1,0 +1,26 @@
+export const colors = {
+  bg: '#070710',
+  card: '#0f0f1a',
+  cardAlt: '#080810',
+  border: '#1e1e32',
+  borderHover: '#2a2a45',
+  text: '#e2e8f0',
+  textMuted: '#94a3b8',
+  textFaint: '#475569',
+  textFainter: '#334155',
+  blue: '#3b82f6',
+  blueLight: '#60a5fa',
+  blueBg: 'rgba(59,130,246,0.08)',
+  blueBorder: 'rgba(59,130,246,0.2)',
+  emerald: '#10b981',
+  emeraldBg: 'rgba(16,185,129,0.05)',
+  emeraldBorder: 'rgba(16,185,129,0.15)',
+  red: '#ef4444',
+  redBg: 'rgba(239,68,68,0.05)',
+  redBorder: 'rgba(239,68,68,0.15)',
+  amber: '#f59e0b',
+  amberBg: 'rgba(245,158,11,0.1)',
+  white: '#ffffff',
+};
+
+export default colors;

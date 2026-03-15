@@ -1,5 +1,3 @@
-'use client';
-
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../supabase/client';
 import { FixedExpense, FixedExpensePayment } from '@/types';
@@ -13,33 +11,26 @@ export function useFixedExpenses(userId?: string) {
     if (!userId) return;
     setLoading(true);
     const now = new Date();
+    const { data: ids } = await supabase.from('fixed_expenses').select('id').eq('user_id', userId);
+    const expenseIds = ids?.map(e => e.id) || [];
     const [{ data: expData }, { data: payData }] = await Promise.all([
       supabase.from('fixed_expenses').select('*').eq('user_id', userId).order('due_day'),
-      supabase
-        .from('fixed_expense_payments')
-        .select('*')
-        .in('fixed_expense_id',
-          (await supabase.from('fixed_expenses').select('id').eq('user_id', userId)).data?.map(e => e.id) || []
-        )
-        .eq('month', now.getMonth() + 1)
-        .eq('year', now.getFullYear()),
+      expenseIds.length > 0
+        ? supabase.from('fixed_expense_payments').select('*').in('fixed_expense_id', expenseIds)
+            .eq('month', now.getMonth() + 1).eq('year', now.getFullYear())
+        : Promise.resolve({ data: [] }),
     ]);
     setExpenses(expData || []);
     setPayments(payData || []);
     setLoading(false);
   }, [userId]);
 
-  useEffect(() => {
-    fetchExpenses();
-  }, [fetchExpenses]);
+  useEffect(() => { fetchExpenses(); }, [fetchExpenses]);
 
   async function createExpense(expense: Omit<FixedExpense, 'id' | 'user_id' | 'created_at'>) {
     if (!userId) return null;
-    const { data, error } = await supabase
-      .from('fixed_expenses')
-      .insert({ ...expense, user_id: userId })
-      .select()
-      .single();
+    const { data, error } = await supabase.from('fixed_expenses')
+      .insert({ ...expense, user_id: userId }).select().single();
     if (!error && data) setExpenses(prev => [...prev, data].sort((a, b) => a.due_day - b.due_day));
     return { data, error };
   }
@@ -50,27 +41,19 @@ export function useFixedExpenses(userId?: string) {
     const expense = expenses.find(e => e.id === expenseId);
     if (!expense) return;
 
-    const { data: payment, error: payError } = await supabase
-      .from('fixed_expense_payments')
+    const { data: payment, error } = await supabase.from('fixed_expense_payments')
       .insert({ fixed_expense_id: expenseId, month: now.getMonth() + 1, year: now.getFullYear() })
-      .select()
-      .single();
+      .select().single();
 
-    if (!payError && payment) {
+    if (!error && payment) {
       setPayments(prev => [...prev, payment]);
-      // Create transaction
       await supabase.from('transactions').insert({
-        user_id: userId,
-        type: 'saida',
-        amount: expense.amount,
-        description: expense.name,
-        category: expense.category,
-        payment_method: 'transferencia',
-        date: now.toISOString().split('T')[0],
+        user_id: userId, type: 'saida', amount: expense.amount,
+        description: expense.name, category: expense.category,
+        payment_method: 'transferencia', date: now.toISOString().split('T')[0],
       });
-      // XP for paying
-      const { data: userData } = await supabase.from('users').select('xp').eq('id', userId).single();
-      if (userData) await supabase.from('users').update({ xp: userData.xp + 10 }).eq('id', userId);
+      const { data: u } = await supabase.from('users').select('xp').eq('id', userId).single();
+      if (u) await supabase.from('users').update({ xp: u.xp + 10 }).eq('id', userId);
     }
   }
 
@@ -85,7 +68,7 @@ export function useFixedExpenses(userId?: string) {
     setExpenses(prev => prev.map(e => e.id === id ? { ...e, is_active: isActive } : e));
   }
 
-  function isPaid(expenseId: string): boolean {
+  function isPaid(expenseId: string) {
     return payments.some(p => p.fixed_expense_id === expenseId);
   }
 
@@ -98,7 +81,7 @@ export function useFixedExpenses(userId?: string) {
     return 'normal';
   }
 
-  const totalMonthly = expenses.filter(e => e.is_active).reduce((sum, e) => sum + e.amount, 0);
+  const totalMonthly = expenses.filter(e => e.is_active).reduce((s, e) => s + e.amount, 0);
 
   return { expenses, payments, loading, createExpense, markAsPaid, deleteExpense, toggleExpense, isPaid, getStatus, totalMonthly, refetch: fetchExpenses };
 }
