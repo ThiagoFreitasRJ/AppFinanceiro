@@ -30,9 +30,12 @@ export function useStocks(userId?: string) {
       setQuotesLoading(true);
       const tickers = data.map(s => s.ticker);
       const quotesData = await getQuotes(tickers);
-      const quotesMap: Record<string, BRAPIQuote> = {};
-      quotesData.forEach(q => { quotesMap[q.symbol] = q; });
-      setQuotes(quotesMap);
+      if (quotesData.length > 0) {
+        const quotesMap: Record<string, BRAPIQuote> = {};
+        quotesData.forEach(q => { quotesMap[q.symbol] = q; });
+        // Merge instead of replace so a partial failure doesn't wipe existing quotes
+        setQuotes(prev => ({ ...prev, ...quotesMap }));
+      }
       setQuotesLoading(false);
     }
   }, [userId]);
