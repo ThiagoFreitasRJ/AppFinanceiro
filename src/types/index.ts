@@ -40,12 +40,25 @@ export interface FixedExpensePayment {
   paid_at: string;
 }
 
+export type AssetType = 'acao' | 'fii' | 'etf' | 'bdr' | 'renda_fixa' | 'cripto' | 'outro';
+
+export const ASSET_TYPES: { id: AssetType; label: string; icon: string; desc: string }[] = [
+  { id: 'acao',       label: 'Ações',       icon: '🏢', desc: 'PETR4, VALE3, ITUB4...' },
+  { id: 'fii',        label: 'Fundo Imob.', icon: '🏗️', desc: 'HGLG11, KNRI11...' },
+  { id: 'etf',        label: 'ETF',         icon: '📊', desc: 'BOVA11, SMAL11...' },
+  { id: 'bdr',        label: 'BDR',         icon: '🌎', desc: 'AAPL34, AMZO34...' },
+  { id: 'renda_fixa', label: 'Renda Fixa',  icon: '💰', desc: 'CDB, Tesouro...' },
+  { id: 'cripto',     label: 'Cripto',      icon: '₿',  desc: 'BTC, ETH...' },
+  { id: 'outro',      label: 'Outro',       icon: '➕', desc: 'Outros ativos' },
+];
+
 export interface Stock {
   id: string;
   user_id: string;
   ticker: string;
   quantity: number;
   avg_price: number;
+  asset_type: AssetType;
   created_at: string;
 }
 

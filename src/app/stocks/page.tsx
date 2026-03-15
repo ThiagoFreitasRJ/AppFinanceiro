@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { Plus, TrendingUp, TrendingDown, RefreshCw, Trash2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, TrendingUp, TrendingDown, RefreshCw, Trash2, Search, ChevronRight, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Image from 'next/image';
 import { useAuth } from '@/lib/hooks/useAuth';
@@ -14,7 +14,11 @@ import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { formatCurrency } from '@/lib/utils/format';
+import { searchTicker } from '@/lib/utils/brapi';
+import { ASSET_TYPES, AssetType } from '@/types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+
+type Step = 'type' | 'ticker' | 'details';
 
 export default function StocksPage() {
   const { user, loading: authLoading } = useAuth();
@@ -22,25 +26,64 @@ export default function StocksPage() {
   const { stocks, loading, quotesLoading, addStock, removeStock, refetch, totalInvested, totalCurrentValue, totalProfitLoss, totalProfitLossPercent } = useStocks(user?.id);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({ ticker: '', quantity: '', avgPrice: '' });
+
+  // Multi-step form state
+  const [step, setStep] = useState<Step>('type');
+  const [selectedType, setSelectedType] = useState<AssetType>('acao');
+  const [tickerSearch, setTickerSearch] = useState('');
+  const [tickerResults, setTickerResults] = useState<string[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [selectedTicker, setSelectedTicker] = useState('');
+  const [quantity, setQuantity] = useState('');
+  const [avgPrice, setAvgPrice] = useState('');
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/auth/login');
   }, [authLoading, user, router]);
 
+  // Debounced ticker search
+  const handleTickerSearch = useCallback((query: string) => {
+    setTickerSearch(query);
+    setSelectedTicker('');
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    if (!query.trim()) { setTickerResults([]); return; }
+    searchTimeout.current = setTimeout(async () => {
+      setSearchLoading(true);
+      const results = await searchTicker(query.toUpperCase());
+      setTickerResults(results.map(r => r.symbol));
+      setSearchLoading(false);
+    }, 350);
+  }, []);
+
+  function openForm() {
+    setStep('type');
+    setSelectedType('acao');
+    setTickerSearch('');
+    setTickerResults([]);
+    setSelectedTicker('');
+    setQuantity('');
+    setAvgPrice('');
+    setShowForm(true);
+  }
+
+  function closeForm() {
+    setShowForm(false);
+  }
+
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
-    const quantity = parseFloat(form.quantity);
-    const avgPrice = parseFloat(form.avgPrice.replace(/\./g, '').replace(',', '.'));
-    if (!form.ticker || quantity <= 0 || avgPrice <= 0) {
+    const qty = parseFloat(quantity);
+    const price = parseFloat(avgPrice.replace(/\./g, '').replace(',', '.'));
+    const ticker = selectedTicker || tickerSearch.trim().toUpperCase();
+    if (!ticker || qty <= 0 || price <= 0) {
       toast.error('Preencha todos os campos corretamente');
       return;
     }
     setSubmitting(true);
-    await addStock(form.ticker.toUpperCase(), quantity, avgPrice);
-    toast.success(`${form.ticker.toUpperCase()} adicionado à carteira!`);
-    setForm({ ticker: '', quantity: '', avgPrice: '' });
-    setShowForm(false);
+    await addStock(ticker, qty, price, selectedType);
+    toast.success(`${ticker} adicionado à carteira!`);
+    closeForm();
     setSubmitting(false);
   }
 
@@ -58,6 +101,7 @@ export default function StocksPage() {
 
   const isProfit = totalProfitLoss >= 0;
   const isValorized = totalCurrentValue >= totalInvested;
+  const assetTypeMeta = ASSET_TYPES.find(t => t.id === selectedType);
 
   return (
     <AppLayout>
@@ -72,7 +116,7 @@ export default function StocksPage() {
             <Button onClick={() => refetch()} variant="secondary" size="sm">
               <RefreshCw size={14} className={quotesLoading ? 'animate-spin' : ''} />
             </Button>
-            <Button onClick={() => setShowForm(true)} size="sm">
+            <Button onClick={openForm} size="sm">
               <Plus size={15} /> Adicionar
             </Button>
           </div>
@@ -123,7 +167,7 @@ export default function StocksPage() {
               <p className="text-[#475569] text-sm mb-8 max-w-sm mx-auto">
                 Monitore sua carteira em tempo real com cotações da B3 via BRAPI
               </p>
-              <Button onClick={() => setShowForm(true)} size="lg">
+              <Button onClick={openForm} size="lg">
                 <Plus size={16} /> Adicionar Ativo
               </Button>
             </div>
@@ -178,6 +222,7 @@ export default function StocksPage() {
                   const dayChange = stock.quote?.regularMarketChangePercent || 0;
                   const isUp = stock.profitLoss >= 0;
                   const isDayUp = dayChange >= 0;
+                  const typeMeta = ASSET_TYPES.find(t => t.id === stock.asset_type);
                   return (
                     <motion.div
                       key={stock.id}
@@ -199,6 +244,11 @@ export default function StocksPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-sm text-[#e2e8f0]">{stock.ticker}</span>
+                          {typeMeta && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-[#1e1e32] text-[#64748b] font-medium">
+                              {typeMeta.icon} {typeMeta.label}
+                            </span>
+                          )}
                           <span className={`text-xs flex items-center gap-0.5 font-medium ${isUp ? 'text-emerald-400' : 'text-red-400'}`}>
                             {isUp ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
                             {stock.profitLossPercent >= 0 ? '+' : ''}{stock.profitLossPercent.toFixed(2)}%
@@ -238,42 +288,165 @@ export default function StocksPage() {
           </div>
         )}
 
-        {/* Add Stock Modal */}
-        <Modal isOpen={showForm} onClose={() => setShowForm(false)} title="Adicionar Ativo" size="sm">
-          <form onSubmit={handleAdd} className="space-y-4">
-            <Input
-              label="Código do Ativo"
-              placeholder="Ex: PETR4, VALE3, ITUB4"
-              value={form.ticker}
-              onChange={e => setForm(p => ({ ...p, ticker: e.target.value.toUpperCase() }))}
-              required
-            />
-            <Input
-              label="Quantidade de Cotas"
-              type="number"
-              placeholder="100"
-              value={form.quantity}
-              onChange={e => setForm(p => ({ ...p, quantity: e.target.value }))}
-              min="0.000001"
-              step="any"
-              required
-            />
-            <Input
-              label="Preço Médio de Compra"
-              prefix="R$"
-              placeholder="0,00"
-              value={form.avgPrice}
-              onChange={e => setForm(p => ({ ...p, avgPrice: e.target.value }))}
-              inputMode="numeric"
-              required
-            />
-            <div className="bg-blue-500/8 border border-blue-500/15 rounded-xl p-3 text-xs text-[#475569]">
-              💡 Cotações em tempo real via BRAPI (brapi.dev)
-            </div>
-            <Button type="submit" fullWidth loading={submitting} size="lg">
-              📈 Adicionar à Carteira
-            </Button>
-          </form>
+        {/* Add Stock Modal — multi-step */}
+        <Modal isOpen={showForm} onClose={closeForm} title="Adicionar Ativo" size="sm">
+          {/* Step indicator */}
+          <div className="flex items-center gap-1.5 mb-6">
+            {(['type', 'ticker', 'details'] as Step[]).map((s, i) => (
+              <div key={s} className="flex items-center gap-1.5">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                  step === s ? 'bg-blue-500 text-white' :
+                  (['type', 'ticker', 'details'].indexOf(step) > i) ? 'bg-emerald-500/20 text-emerald-400' :
+                  'bg-[#1e1e32] text-[#475569]'
+                }`}>
+                  {['type', 'ticker', 'details'].indexOf(step) > i ? '✓' : i + 1}
+                </div>
+                <span className={`text-xs font-medium ${step === s ? 'text-[#e2e8f0]' : 'text-[#475569]'}`}>
+                  {s === 'type' ? 'Tipo' : s === 'ticker' ? 'Ativo' : 'Detalhes'}
+                </span>
+                {i < 2 && <ChevronRight size={12} className="text-[#334155]" />}
+              </div>
+            ))}
+          </div>
+
+          <AnimatePresence mode="wait">
+            {/* STEP 1 — Asset type */}
+            {step === 'type' && (
+              <motion.div key="type" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                <p className="text-sm text-[#64748b] mb-4">Que tipo de ativo você quer adicionar?</p>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {ASSET_TYPES.map(type => (
+                    <button
+                      key={type.id}
+                      onClick={() => { setSelectedType(type.id); setStep('ticker'); }}
+                      className="flex items-center gap-3 p-3.5 rounded-xl border border-[#1e1e32] bg-[#080810] hover:border-blue-500/40 hover:bg-blue-500/5 transition-all text-left group"
+                    >
+                      <span className="text-xl">{type.icon}</span>
+                      <div>
+                        <p className="text-sm font-semibold text-[#e2e8f0] group-hover:text-white">{type.label}</p>
+                        <p className="text-[10px] text-[#475569]">{type.desc}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
+            {/* STEP 2 — Ticker search */}
+            {step === 'ticker' && (
+              <motion.div key="ticker" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                <div className="flex items-center gap-2 mb-4">
+                  <button onClick={() => setStep('type')} className="text-[#475569] hover:text-[#e2e8f0] transition-colors">
+                    ←
+                  </button>
+                  <span className="text-sm text-[#64748b]">
+                    {assetTypeMeta?.icon} {assetTypeMeta?.label} · busque pelo código ou nome
+                  </span>
+                </div>
+
+                {/* Search input */}
+                <div className="relative mb-3">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#475569]" />
+                  <input
+                    autoFocus
+                    className="w-full bg-[#080810] border border-[#1e1e32] rounded-xl pl-9 pr-9 py-2.5 text-sm text-[#e2e8f0] placeholder-[#334155] focus:outline-none focus:border-blue-500/50 font-mono-numbers uppercase"
+                    placeholder={`Ex: ${assetTypeMeta?.desc.split(',')[0].trim()}`}
+                    value={tickerSearch}
+                    onChange={e => handleTickerSearch(e.target.value)}
+                  />
+                  {tickerSearch && (
+                    <button onClick={() => { setTickerSearch(''); setTickerResults([]); setSelectedTicker(''); }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#334155] hover:text-[#e2e8f0]">
+                      <X size={13} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Results list */}
+                <div className="max-h-60 overflow-y-auto space-y-1 rounded-xl">
+                  {searchLoading && (
+                    <div className="flex items-center gap-2 p-3 text-xs text-[#475569]">
+                      <div className="w-3 h-3 border border-blue-500 border-t-transparent rounded-full animate-spin" />
+                      Buscando...
+                    </div>
+                  )}
+                  {!searchLoading && tickerResults.length === 0 && tickerSearch.length > 0 && (
+                    <p className="text-xs text-[#475569] p-3">Nenhum resultado. Você pode digitar o código manualmente.</p>
+                  )}
+                  {tickerResults.map(symbol => (
+                    <button
+                      key={symbol}
+                      onClick={() => { setSelectedTicker(symbol); setTickerSearch(symbol); setStep('details'); }}
+                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-[#080810] border border-[#1e1e32] hover:border-blue-500/40 hover:bg-blue-500/5 transition-all text-left"
+                    >
+                      <span className="text-sm font-bold text-[#e2e8f0] font-mono-numbers">{symbol}</span>
+                      <ChevronRight size={13} className="text-[#334155]" />
+                    </button>
+                  ))}
+                </div>
+
+                {/* Manual continue */}
+                {tickerSearch.length >= 2 && (
+                  <button
+                    onClick={() => { setSelectedTicker(tickerSearch.toUpperCase()); setStep('details'); }}
+                    className="mt-3 w-full py-2.5 rounded-xl border border-dashed border-[#2a2a45] text-xs text-[#475569] hover:text-[#94a3b8] hover:border-[#334155] transition-all"
+                  >
+                    Usar &quot;{tickerSearch.toUpperCase()}&quot; mesmo assim →
+                  </button>
+                )}
+              </motion.div>
+            )}
+
+            {/* STEP 3 — Quantity & price */}
+            {step === 'details' && (
+              <motion.div key="details" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                <div className="flex items-center gap-2 mb-5">
+                  <button onClick={() => setStep('ticker')} className="text-[#475569] hover:text-[#e2e8f0] transition-colors">
+                    ←
+                  </button>
+                  <div className="flex items-center gap-2">
+                    <span className="text-base font-bold text-white font-mono-numbers">{selectedTicker || tickerSearch.toUpperCase()}</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-[#1e1e32] text-[#64748b]">
+                      {assetTypeMeta?.icon} {assetTypeMeta?.label}
+                    </span>
+                  </div>
+                </div>
+
+                <form onSubmit={handleAdd} className="space-y-4">
+                  <Input
+                    label="Quantidade de Cotas"
+                    type="number"
+                    placeholder="100"
+                    value={quantity}
+                    onChange={e => setQuantity(e.target.value)}
+                    min="0.000001"
+                    step="any"
+                    required
+                  />
+                  <Input
+                    label="Preço Médio de Compra"
+                    prefix="R$"
+                    placeholder="0,00"
+                    value={avgPrice}
+                    onChange={e => setAvgPrice(e.target.value)}
+                    inputMode="numeric"
+                    required
+                  />
+                  {quantity && avgPrice && (
+                    <div className="bg-[#080810] border border-[#1e1e32] rounded-xl p-3 text-xs text-[#64748b]">
+                      Total investido:{' '}
+                      <span className="text-white font-bold font-mono-numbers">
+                        {formatCurrency(parseFloat(quantity || '0') * parseFloat(avgPrice.replace(/\./g, '').replace(',', '.') || '0'))}
+                      </span>
+                    </div>
+                  )}
+                  <Button type="submit" fullWidth loading={submitting} size="lg">
+                    📈 Adicionar à Carteira
+                  </Button>
+                </form>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </Modal>
       </div>
     </AppLayout>

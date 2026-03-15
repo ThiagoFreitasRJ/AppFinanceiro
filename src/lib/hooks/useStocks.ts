@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../supabase/client';
-import { Stock } from '@/types';
+import { Stock, AssetType } from '@/types';
 import { getQuotes, BRAPIQuote } from '../utils/brapi';
 
 export interface StockWithQuote extends Stock {
@@ -41,7 +41,7 @@ export function useStocks(userId?: string) {
     fetchStocks();
   }, [fetchStocks]);
 
-  async function addStock(ticker: string, quantity: number, avgPrice: number) {
+  async function addStock(ticker: string, quantity: number, avgPrice: number, assetType: AssetType = 'acao') {
     if (!userId) return null;
     const { data: existing } = await supabase
       .from('stocks')
@@ -56,14 +56,14 @@ export function useStocks(userId?: string) {
       const newAvgPrice = (existing.quantity * existing.avg_price + quantity * avgPrice) / totalQty;
       result = await supabase
         .from('stocks')
-        .update({ quantity: totalQty, avg_price: newAvgPrice })
+        .update({ quantity: totalQty, avg_price: newAvgPrice, asset_type: assetType })
         .eq('id', existing.id)
         .select()
         .single();
     } else {
       result = await supabase
         .from('stocks')
-        .insert({ user_id: userId, ticker: ticker.toUpperCase(), quantity, avg_price: avgPrice })
+        .insert({ user_id: userId, ticker: ticker.toUpperCase(), quantity, avg_price: avgPrice, asset_type: assetType })
         .select()
         .single();
     }
