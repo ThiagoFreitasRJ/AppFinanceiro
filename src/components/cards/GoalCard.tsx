@@ -2,15 +2,14 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, Plus, Trash2, Calendar } from 'lucide-react';
+import { Plus, Trash2, Calendar } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Goal } from '@/types';
-import { Card } from '@/components/ui/Card';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
-import { formatCurrency, formatDate, calculateXP } from '@/lib/utils/format';
+import { formatCurrency, calculateXP } from '@/lib/utils/format';
 import { useGoals } from '@/lib/hooks/useGoals';
 import { differenceInDays } from 'date-fns';
 
@@ -66,25 +65,26 @@ export function GoalCard({ goal, onDelete, index = 0 }: GoalCardProps) {
   return (
     <>
       <motion.div
-        className={`relative bg-[#111111] border rounded-xl p-5 overflow-hidden transition-all duration-300 hover:border-opacity-60`}
-        style={{ borderColor: `${goal.color}40` }}
-        initial={{ opacity: 0, y: 20 }}
+        className="relative bg-[#0f0f1a] border rounded-2xl p-5 overflow-hidden hover:border-opacity-80 transition-all duration-300 group"
+        style={{ borderColor: `${goal.color}35` }}
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: index * 0.1 }}
+        transition={{ delay: index * 0.08 }}
+        whileHover={{ y: -2 }}
       >
-        {/* Background gradient */}
+        {/* Background glow */}
         <div
-          className="absolute top-0 right-0 w-32 h-32 rounded-full -translate-y-12 translate-x-12 opacity-10"
+          className="absolute top-0 right-0 w-36 h-36 rounded-full -translate-y-16 translate-x-16 opacity-[0.07] blur-2xl"
           style={{ backgroundColor: goal.color }}
         />
 
-        {/* XP Float animation */}
+        {/* XP Float */}
         <AnimatePresence>
           {xpFloat && (
             <motion.div
-              className="absolute top-4 right-4 text-[#00FF88] font-bold text-lg z-10"
+              className="absolute top-4 right-4 text-emerald-400 font-bold text-base z-10"
               initial={{ opacity: 1, y: 0 }}
-              animate={{ opacity: 0, y: -50 }}
+              animate={{ opacity: 0, y: -40 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 1.5 }}
             >
@@ -94,49 +94,49 @@ export function GoalCard({ goal, onDelete, index = 0 }: GoalCardProps) {
         </AnimatePresence>
 
         {/* Header */}
-        <div className="flex items-start justify-between mb-4">
+        <div className="flex items-start justify-between mb-4 relative z-10">
           <div className="flex items-center gap-3">
             <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
-              style={{ backgroundColor: `${goal.color}20` }}
+              className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+              style={{ backgroundColor: `${goal.color}18` }}
             >
               {goal.icon}
             </div>
             <div>
-              <h3 className="font-semibold text-white">{goal.name}</h3>
+              <h3 className="font-semibold text-[#e2e8f0] text-sm">{goal.name}</h3>
               {isCompleted ? (
-                <span className="text-xs text-[#00FF88]">✅ Concluído!</span>
+                <span className="text-xs text-emerald-400 font-medium">✅ Concluído!</span>
               ) : daysLeft !== null ? (
-                <span className={`text-xs ${daysLeft <= 7 ? 'text-[#FF4444]' : 'text-[#666666]'}`}>
-                  <Calendar size={10} className="inline mr-1" />
+                <span className={`text-xs flex items-center gap-1 ${daysLeft <= 7 ? 'text-red-400' : 'text-[#475569]'}`}>
+                  <Calendar size={10} />
                   {daysLeft > 0 ? `${daysLeft} dias restantes` : 'Prazo vencido'}
                 </span>
               ) : (
-                <span className="text-xs text-[#666666]">Sem prazo</span>
+                <span className="text-xs text-[#475569]">Sem prazo</span>
               )}
             </div>
           </div>
           {onDelete && !isCompleted && (
             <button
               onClick={() => onDelete(goal.id)}
-              className="text-[#666666] hover:text-[#FF4444] transition-colors p-1"
+              className="opacity-0 group-hover:opacity-100 p-1.5 hover:text-red-400 text-[#334155] transition-all rounded-lg hover:bg-red-500/10"
             >
-              <Trash2 size={14} />
+              <Trash2 size={13} />
             </button>
           )}
         </div>
 
         {/* Progress */}
-        <div className="mb-4">
+        <div className="mb-4 relative z-10">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm text-white font-medium">{formatCurrency(goal.current_amount)}</span>
-            <span className="text-sm text-[#666666]">{formatCurrency(goal.target_amount)}</span>
+            <span className="text-sm font-bold text-[#e2e8f0] font-mono-numbers">{formatCurrency(goal.current_amount)}</span>
+            <span className="text-xs text-[#475569] font-mono-numbers">{progress.toFixed(0)}%</span>
           </div>
-          <ProgressBar value={progress} color={goal.color} height={10} />
-          <p className="text-right text-xs text-[#666666] mt-1">{progress.toFixed(1)}%</p>
+          <ProgressBar value={progress} color={goal.color} height={6} />
+          <p className="text-right text-xs text-[#475569] mt-1.5 font-mono-numbers">{formatCurrency(goal.target_amount)}</p>
         </div>
 
-        {/* Actions */}
+        {/* Action */}
         {!isCompleted && (
           <Button
             onClick={() => setShowDeposit(true)}
@@ -144,20 +144,25 @@ export function GoalCard({ goal, onDelete, index = 0 }: GoalCardProps) {
             size="sm"
             variant="secondary"
           >
-            <Plus size={16} /> Depositar
+            <Plus size={14} /> Depositar
           </Button>
         )}
       </motion.div>
 
       {/* Deposit Modal */}
       <Modal isOpen={showDeposit} onClose={() => setShowDeposit(false)} title={`Depositar em "${goal.name}"`} size="sm">
-        <div className="space-y-4">
-          <div className="text-center mb-2">
-            <span className="text-4xl">{goal.icon}</span>
-            <div className="mt-2">
-              <ProgressBar value={progress} color={goal.color} />
-              <p className="text-xs text-[#666666] mt-1">{formatCurrency(goal.current_amount)} / {formatCurrency(goal.target_amount)}</p>
+        <div className="space-y-5">
+          <div className="text-center">
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-3"
+              style={{ backgroundColor: `${goal.color}18` }}
+            >
+              {goal.icon}
             </div>
+            <ProgressBar value={progress} color={goal.color} height={6} />
+            <p className="text-xs text-[#475569] mt-2 font-mono-numbers">
+              {formatCurrency(goal.current_amount)} / {formatCurrency(goal.target_amount)}
+            </p>
           </div>
 
           <Input
@@ -172,12 +177,12 @@ export function GoalCard({ goal, onDelete, index = 0 }: GoalCardProps) {
 
           {depositAmount && (
             <motion.div
-              className="flex items-center justify-center gap-2 bg-[#0066FF]/10 border border-[#0066FF]/20 rounded-lg p-3"
+              className="flex items-center justify-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-xl p-3"
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <span className="text-sm text-[#0066FF]">Você ganhará</span>
-              <span className="text-lg font-bold text-[#00FF88]">+{previewXP} XP</span>
+              <span className="text-sm text-[#94a3b8]">Você ganhará</span>
+              <span className="text-base font-bold text-emerald-400">+{previewXP} XP</span>
             </motion.div>
           )}
 

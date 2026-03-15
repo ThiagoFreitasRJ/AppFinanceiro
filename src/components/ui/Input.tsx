@@ -8,35 +8,43 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string;
   prefix?: string;
   suffix?: string;
+  hint?: string;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, className, prefix, suffix, ...props }, ref) => {
+  ({ label, error, className, prefix, suffix, hint, ...props }, ref) => {
     return (
-      <div className="flex flex-col gap-1">
-        {label && <label className="text-sm text-[#A0A0A0] font-medium">{label}</label>}
+      <div className="flex flex-col gap-1.5">
+        {label && (
+          <label className="text-sm text-[#94a3b8] font-medium">{label}</label>
+        )}
         <div className="relative flex items-center">
           {prefix && (
-            <span className="absolute left-3 text-[#666666] text-sm pointer-events-none">{prefix}</span>
+            <span className="absolute left-3.5 text-[#475569] text-sm pointer-events-none font-medium">
+              {prefix}
+            </span>
           )}
           <input
             ref={ref}
             className={cn(
-              'w-full bg-[#1F1F1F] border border-[#2A2A2A] rounded-lg text-white placeholder-[#666666]',
-              'focus:outline-none focus:border-[#0066FF] transition-colors duration-200',
-              'text-sm py-2.5',
-              prefix ? 'pl-8 pr-4' : 'px-4',
+              'w-full bg-[#0f0f1a] border border-[#1e1e32] rounded-xl text-white placeholder-[#334155]',
+              'focus:outline-none focus:border-blue-500/50 focus:bg-[#0f0f1a] focus:ring-1 focus:ring-blue-500/20',
+              'transition-all duration-200 text-sm py-2.5 font-medium',
+              prefix ? 'pl-10 pr-4' : 'px-4',
               suffix ? 'pr-10' : '',
-              error && 'border-[#FF4444]',
+              error && 'border-red-500/50 focus:border-red-500/50 focus:ring-red-500/20',
               className
             )}
             {...props}
           />
           {suffix && (
-            <span className="absolute right-3 text-[#666666] text-sm pointer-events-none">{suffix}</span>
+            <span className="absolute right-3.5 text-[#475569] text-sm pointer-events-none">
+              {suffix}
+            </span>
           )}
         </div>
-        {error && <span className="text-xs text-[#FF4444]">{error}</span>}
+        {hint && !error && <span className="text-xs text-[#475569]">{hint}</span>}
+        {error && <span className="text-xs text-red-400">{error}</span>}
       </div>
     );
   }
@@ -51,25 +59,25 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
 
 export function Select({ label, error, className, options, ...props }: SelectProps) {
   return (
-    <div className="flex flex-col gap-1">
-      {label && <label className="text-sm text-[#A0A0A0] font-medium">{label}</label>}
+    <div className="flex flex-col gap-1.5">
+      {label && <label className="text-sm text-[#94a3b8] font-medium">{label}</label>}
       <select
         className={cn(
-          'w-full bg-[#1F1F1F] border border-[#2A2A2A] rounded-lg text-white',
-          'focus:outline-none focus:border-[#0066FF] transition-colors duration-200',
-          'text-sm py-2.5 px-4 appearance-none cursor-pointer',
-          error && 'border-[#FF4444]',
+          'w-full bg-[#0f0f1a] border border-[#1e1e32] rounded-xl text-white',
+          'focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20',
+          'transition-all duration-200 text-sm py-2.5 px-4 appearance-none cursor-pointer',
+          error && 'border-red-500/50',
           className
         )}
         {...props}
       >
         {options.map(opt => (
-          <option key={opt.value} value={opt.value}>
+          <option key={opt.value} value={opt.value} className="bg-[#0f0f1a]">
             {opt.icon ? `${opt.icon} ` : ''}{opt.label}
           </option>
         ))}
       </select>
-      {error && <span className="text-xs text-[#FF4444]">{error}</span>}
+      {error && <span className="text-xs text-red-400">{error}</span>}
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Plus, ChevronRight } from 'lucide-react';
+import { ChevronRight, Plus, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useMonthTransactions, useTransactions } from '@/lib/hooks/useTransactions';
@@ -17,7 +17,6 @@ import { BalanceAreaChart } from '@/components/charts/BalanceAreaChart';
 import { Card } from '@/components/ui/Card';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { formatCurrency } from '@/lib/utils/format';
-import { CardSkeleton } from '@/components/ui/Skeleton';
 
 export default function DashboardPage() {
   const { user, profile, loading: authLoading } = useAuth();
@@ -25,112 +24,128 @@ export default function DashboardPage() {
   const { transactions: allTransactions } = useTransactions(user?.id);
   const { income, expense, savings, transactions } = useMonthTransactions(user?.id);
   const { goals } = useGoals(user?.id);
-  const { expenses, getStatus, isPaid, totalMonthly } = useFixedExpenses(user?.id);
+  const { expenses, getStatus, isPaid } = useFixedExpenses(user?.id);
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/auth/login');
   }, [authLoading, user, router]);
 
-  if (authLoading) {
-    return (
-      <AppLayout>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          {[...Array(4)].map((_, i) => <CardSkeleton key={i} />)}
-        </div>
-      </AppLayout>
-    );
-  }
+  if (authLoading) return (
+    <AppLayout>
+      <div className="flex items-center justify-center h-64">
+        <motion.div
+          className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
+        />
+      </div>
+    </AppLayout>
+  );
 
   const totalInGoals = goals.filter(g => !g.completed_at).reduce((s, g) => s + g.current_amount, 0);
-  const prevMonthExpense = expense * 1.1; // Simplified previous month comparison
-  const expenseChange = prevMonthExpense > 0 ? ((expense - prevMonthExpense) / prevMonthExpense) * 100 : 0;
-
-  const upcomingExpenses = expenses
-    .filter(e => e.is_active && !isPaid(e.id))
-    .filter(e => {
-      const status = getStatus(e);
-      return status === 'upcoming' || status === 'overdue';
-    })
+  const upcomingExpenses = expenses.filter(e => e.is_active && !isPaid(e.id))
+    .filter(e => { const s = getStatus(e); return s === 'upcoming' || s === 'overdue'; })
     .slice(0, 3);
+
+  const firstName = profile?.name?.split(' ')[0] || 'Usuário';
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
 
   return (
     <AppLayout>
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-8">
+
         {/* Greeting */}
         <motion.div
-          initial={{ opacity: 0, y: -10 }}
+          initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
         >
-          <h1 className="text-xl font-bold text-white">
-            Olá, {profile?.name?.split(' ')[0] || 'Usuário'} 👋
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkles size={14} className="text-blue-400" />
+            <p className="text-sm text-[#475569] font-medium">
+              {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+            </p>
+          </div>
+          <h1 className="text-2xl font-bold text-white">
+            {greeting}, <span className="gradient-text">{firstName}</span> 👋
           </h1>
-          <p className="text-[#666666] text-sm">
-            {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
-          </p>
+          <p className="text-[#475569] text-sm mt-1">Aqui está seu resumo financeiro de hoje</p>
         </motion.div>
 
-        {/* Balance Card */}
+        {/* Balance */}
         <BalanceCard balance={income - expense} income={income} expense={expense} />
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <SummaryCard title="Entradas" value={income} icon="📈" color="#00FF88" delay={0.1} />
-          <SummaryCard title="Saídas" value={expense} icon="📉" color="#FF4444" change={expenseChange} delay={0.2} />
-          <SummaryCard title="Economia" value={savings} icon="💰" color="#0066FF" delay={0.3} />
-          <SummaryCard title="Em Objetivos" value={totalInGoals} icon="🎯" color="#DDA0DD" delay={0.4} />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <SummaryCard title="Entradas" value={income} icon="📈" color="#34d399" bgColor="rgba(16,185,129,0.1)" delay={0.05} />
+          <SummaryCard title="Saídas" value={expense} icon="📉" color="#f87171" bgColor="rgba(239,68,68,0.1)" delay={0.1} />
+          <SummaryCard title="Economia" value={savings} icon="💰" color="#60a5fa" bgColor="rgba(59,130,246,0.1)" delay={0.15} />
+          <SummaryCard title="Objetivos" value={totalInGoals} icon="🎯" color="#a78bfa" bgColor="rgba(139,92,246,0.1)" delay={0.2} />
         </div>
 
-        {/* Charts Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-white text-sm">Gastos por Categoria</h3>
-              <span className="text-xs text-[#666666]">Este mês</span>
+        {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <Card delay={0.25}>
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h3 className="font-semibold text-[#e2e8f0] text-sm">Gastos por Categoria</h3>
+                <p className="text-xs text-[#475569] mt-0.5">Este mês</p>
+              </div>
             </div>
             <ExpenseDonut transactions={transactions} />
           </Card>
 
-          <Card>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-white text-sm">Evolução do Saldo</h3>
-              <span className="text-xs text-[#666666]">6 meses</span>
+          <Card delay={0.3}>
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h3 className="font-semibold text-[#e2e8f0] text-sm">Evolução do Saldo</h3>
+                <p className="text-xs text-[#475569] mt-0.5">Últimos 6 meses</p>
+              </div>
             </div>
             <BalanceAreaChart transactions={allTransactions} />
           </Card>
         </div>
 
-        {/* Goals Progress + Upcoming */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Goals + Upcoming */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {/* Goals */}
-          <Card>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-white text-sm">Objetivos Ativos</h3>
-              <Link href="/goals" className="text-xs text-[#0066FF] flex items-center gap-1 hover:underline">
-                Ver todos <ChevronRight size={12} />
+          <Card delay={0.35}>
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h3 className="font-semibold text-[#e2e8f0] text-sm">Objetivos Ativos</h3>
+                <p className="text-xs text-[#475569] mt-0.5">{goals.filter(g => !g.completed_at).length} objetivos</p>
+              </div>
+              <Link href="/goals" className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors font-medium">
+                Ver todos <ChevronRight size={13} />
               </Link>
             </div>
+
             {goals.filter(g => !g.completed_at).slice(0, 3).length === 0 ? (
-              <div className="text-center py-6">
-                <p className="text-[#666666] text-sm mb-3">Nenhum objetivo criado</p>
-                <Link href="/goals" className="text-[#0066FF] text-sm hover:underline">Criar objetivo →</Link>
+              <div className="text-center py-8">
+                <p className="text-4xl mb-3">🎯</p>
+                <p className="text-[#475569] text-sm mb-4">Nenhum objetivo criado</p>
+                <Link href="/goals" className="text-blue-400 text-sm hover:text-blue-300 font-medium transition-colors">
+                  Criar objetivo →
+                </Link>
               </div>
             ) : (
               <div className="space-y-4">
                 {goals.filter(g => !g.completed_at).slice(0, 3).map(goal => {
                   const progress = (goal.current_amount / goal.target_amount) * 100;
                   return (
-                    <div key={goal.id}>
-                      <div className="flex items-center justify-between mb-1.5">
+                    <div key={goal.id} className="space-y-2">
+                      <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span>{goal.icon}</span>
-                          <span className="text-sm text-white">{goal.name}</span>
+                          <span className="text-base">{goal.icon}</span>
+                          <span className="text-sm font-medium text-[#cbd5e1]">{goal.name}</span>
                         </div>
-                        <span className="text-xs text-[#666666]">{progress.toFixed(0)}%</span>
+                        <span className="text-xs text-[#475569] font-mono-numbers">{progress.toFixed(0)}%</span>
                       </div>
                       <ProgressBar value={progress} color={goal.color} height={6} />
-                      <div className="flex justify-between mt-1">
-                        <span className="text-xs text-[#666666]">{formatCurrency(goal.current_amount)}</span>
-                        <span className="text-xs text-[#666666]">{formatCurrency(goal.target_amount)}</span>
+                      <div className="flex justify-between">
+                        <span className="text-xs text-[#334155] font-mono-numbers">{formatCurrency(goal.current_amount)}</span>
+                        <span className="text-xs text-[#334155] font-mono-numbers">{formatCurrency(goal.target_amount)}</span>
                       </div>
                     </div>
                   );
@@ -140,31 +155,37 @@ export default function DashboardPage() {
           </Card>
 
           {/* Upcoming expenses */}
-          <Card>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-white text-sm">Próximos Vencimentos</h3>
-              <Link href="/fixed-expenses" className="text-xs text-[#0066FF] flex items-center gap-1 hover:underline">
-                Ver todos <ChevronRight size={12} />
+          <Card delay={0.4}>
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h3 className="font-semibold text-[#e2e8f0] text-sm">Próximos Vencimentos</h3>
+                <p className="text-xs text-[#475569] mt-0.5">{upcomingExpenses.length} pendentes</p>
+              </div>
+              <Link href="/fixed-expenses" className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors font-medium">
+                Ver todos <ChevronRight size={13} />
               </Link>
             </div>
             {upcomingExpenses.length === 0 ? (
-              <div className="text-center py-6">
-                <p className="text-[#666666] text-sm">Sem vencimentos próximos 🎉</p>
+              <div className="text-center py-8">
+                <p className="text-4xl mb-3">✅</p>
+                <p className="text-[#475569] text-sm">Sem vencimentos próximos</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {upcomingExpenses.map(exp => {
                   const status = getStatus(exp);
-                  const statusColor = status === 'overdue' ? '#FF4444' : '#FFAA00';
+                  const isOverdue = status === 'overdue';
                   return (
-                    <div key={exp.id} className="flex items-center justify-between py-2 border-b border-[#1F1F1F] last:border-0">
+                    <div key={exp.id} className={`flex items-center justify-between p-3 rounded-xl border ${
+                      isOverdue ? 'bg-red-500/5 border-red-500/20' : 'bg-amber-500/5 border-amber-500/20'
+                    }`}>
                       <div>
-                        <p className="text-sm text-white">{exp.name}</p>
-                        <p className="text-xs" style={{ color: statusColor }}>
-                          {status === 'overdue' ? '🔴 Vencido' : `🟡 Vence dia ${exp.due_day}`}
+                        <p className="text-sm font-medium text-[#cbd5e1]">{exp.name}</p>
+                        <p className={`text-xs mt-0.5 ${isOverdue ? 'text-red-400' : 'text-amber-400'}`}>
+                          {isOverdue ? '🔴 Vencido' : `🟡 Vence dia ${exp.due_day}`}
                         </p>
                       </div>
-                      <p className="text-sm font-medium text-[#FF4444]">{formatCurrency(exp.amount)}</p>
+                      <p className="text-sm font-bold text-red-400 font-mono-numbers">{formatCurrency(exp.amount)}</p>
                     </div>
                   );
                 })}
@@ -174,18 +195,22 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Transactions */}
-        <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-white text-sm">Transações Recentes</h3>
-            <Link href="/transactions" className="text-xs text-[#0066FF] flex items-center gap-1 hover:underline">
-              Ver todas <ChevronRight size={12} />
+        <Card delay={0.45}>
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h3 className="font-semibold text-[#e2e8f0] text-sm">Transações Recentes</h3>
+              <p className="text-xs text-[#475569] mt-0.5">Este mês</p>
+            </div>
+            <Link href="/transactions" className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors font-medium">
+              Ver todas <ChevronRight size={13} />
             </Link>
           </div>
           {transactions.slice(0, 5).length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-[#666666] text-sm mb-3">Nenhuma transação este mês</p>
-              <Link href="/transactions" className="inline-flex items-center gap-2 bg-[#0066FF] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#0052CC] transition-colors">
-                <Plus size={16} /> Adicionar transação
+            <div className="text-center py-10">
+              <p className="text-4xl mb-3">💸</p>
+              <p className="text-[#475569] text-sm mb-4">Nenhuma transação este mês</p>
+              <Link href="/transactions" className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-2 rounded-xl font-semibold transition-colors">
+                <Plus size={15} /> Adicionar transação
               </Link>
             </div>
           ) : (

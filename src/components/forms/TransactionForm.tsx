@@ -69,18 +69,20 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
       {/* Type Toggle */}
-      <div className="flex gap-2 p-1 bg-[#1F1F1F] rounded-xl">
+      <div className="flex gap-2 p-1.5 bg-[#0a0a14] border border-[#1e1e32] rounded-xl">
         {(['saida', 'entrada'] as const).map(t => (
           <motion.button
             key={t}
             type="button"
             onClick={() => setType(t)}
-            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${
+            className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
               type === t
-                ? t === 'entrada' ? 'bg-[#00FF88]/20 text-[#00FF88]' : 'bg-[#FF4444]/20 text-[#FF4444]'
-                : 'text-[#666666]'
+                ? t === 'entrada'
+                  ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
+                  : 'bg-red-500/15 text-red-400 border border-red-500/25'
+                : 'text-[#475569] hover:text-[#94a3b8]'
             }`}
             whileTap={{ scale: 0.97 }}
           >
@@ -89,7 +91,6 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
         ))}
       </div>
 
-      {/* Amount */}
       <Input
         label="Valor"
         prefix="R$"
@@ -100,7 +101,6 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
         required
       />
 
-      {/* Description */}
       <Input
         label="Descrição"
         placeholder="Ex: Almoço com amigos"
@@ -108,7 +108,6 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
         onChange={e => setForm(prev => ({ ...prev, description: e.target.value }))}
       />
 
-      {/* Category */}
       <Select
         label="Categoria"
         value={form.category}
@@ -118,27 +117,26 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
 
       {/* Payment Method */}
       <div>
-        <label className="text-sm text-[#A0A0A0] font-medium block mb-2">Método de Pagamento</label>
+        <label className="text-sm text-[#94a3b8] font-medium block mb-2">Método de Pagamento</label>
         <div className="grid grid-cols-5 gap-2">
           {PAYMENT_METHODS.map(method => (
             <button
               key={method.id}
               type="button"
               onClick={() => setForm(prev => ({ ...prev, payment_method: method.id as typeof form.payment_method }))}
-              className={`py-2 rounded-lg text-center transition-all ${
+              className={`py-2.5 rounded-xl text-center transition-all ${
                 form.payment_method === method.id
-                  ? 'bg-[#0066FF]/20 border border-[#0066FF]/50 text-[#0066FF]'
-                  : 'bg-[#1F1F1F] border border-[#2A2A2A] text-[#666666] hover:border-[#444]'
+                  ? 'bg-blue-500/15 border border-blue-500/30 text-blue-400'
+                  : 'bg-[#0f0f1a] border border-[#1e1e32] text-[#475569] hover:border-[#2a2a45] hover:text-[#94a3b8]'
               }`}
             >
               <div className="text-lg">{method.icon}</div>
-              <div className="text-[9px] mt-0.5">{method.name}</div>
+              <div className="text-[9px] mt-0.5 font-medium">{method.name}</div>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Date */}
       <Input
         label="Data"
         type="date"

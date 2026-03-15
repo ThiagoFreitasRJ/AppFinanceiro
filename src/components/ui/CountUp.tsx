@@ -21,11 +21,9 @@ export function CountUp({ end, duration = 1500, prefix = '', suffix = '', decima
     const animate = (timestamp: number) => {
       if (!startTime.current) startTime.current = timestamp;
       const progress = Math.min((timestamp - startTime.current) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3); // cubic ease out
+      const eased = 1 - Math.pow(1 - progress, 3);
       setValue(eased * end);
-      if (progress < 1) {
-        animRef.current = requestAnimationFrame(animate);
-      }
+      if (progress < 1) animRef.current = requestAnimationFrame(animate);
     };
     animRef.current = requestAnimationFrame(animate);
     return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
@@ -37,4 +35,15 @@ export function CountUp({ end, duration = 1500, prefix = '', suffix = '', decima
   }).format(value);
 
   return <span className={className}>{prefix}{formatted}{suffix}</span>;
+}
+
+export function CurrencyDisplay({ value, className }: { value: number; className?: string }) {
+  return (
+    <CountUp
+      end={value}
+      prefix="R$ "
+      decimals={2}
+      className={className}
+    />
+  );
 }
