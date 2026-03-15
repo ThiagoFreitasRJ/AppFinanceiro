@@ -52,6 +52,19 @@ export const ASSET_TYPES: { id: AssetType; label: string; icon: string; desc: st
   { id: 'outro',      label: 'Outro',       icon: '➕', desc: 'Outros ativos' },
 ];
 
+export type YieldType = 'pre' | 'pos_cdi' | 'ipca';
+
+export const YIELD_TYPES: { id: YieldType; label: string; desc: string }[] = [
+  { id: 'pre',     label: 'Prefixado',     desc: 'Taxa fixa ao ano' },
+  { id: 'pos_cdi', label: '% do CDI',      desc: 'Pós-fixado atrelado ao CDI' },
+  { id: 'ipca',    label: 'IPCA+',         desc: 'Inflação + taxa fixa' },
+];
+
+export const FIXED_INCOME_PRODUCTS = [
+  'CDB', 'LCI', 'LCA', 'Tesouro Selic', 'Tesouro IPCA+',
+  'Tesouro Prefixado', 'Debenture', 'CRI', 'CRA', 'Outro',
+];
+
 export interface Stock {
   id: string;
   user_id: string;
@@ -60,6 +73,13 @@ export interface Stock {
   avg_price: number;
   asset_type: AssetType;
   created_at: string;
+  // Renda fixa fields
+  purchase_date?: string | null;
+  yield_rate?: number | null;
+  yield_type?: YieldType | null;
+  institution?: string | null;
+  maturity_date?: string | null;
+  admin_fee?: number | null;
 }
 
 export interface Dividend {

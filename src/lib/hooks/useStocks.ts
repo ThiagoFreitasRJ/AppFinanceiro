@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../supabase/client';
-import { Stock, AssetType } from '@/types';
+import { Stock, AssetType, YieldType } from '@/types';
 import { getQuotes, BRAPIQuote } from '../utils/brapi';
 
 export interface StockWithQuote extends Stock {
@@ -12,6 +12,17 @@ export interface StockWithQuote extends Stock {
   profitLoss: number;
   profitLossPercent: number;
 }
+
+export interface FixedIncomeData {
+  purchase_date: string;
+  yield_rate: number;
+  yield_type: YieldType;
+  institution: string;
+  maturity_date: string | null;
+  admin_fee: number;
+}
+
+const QUOTABLE_TYPES: AssetType[] = ['acao', 'fii', 'etf', 'bdr', 'cripto'];
 
 export function useStocks(userId?: string) {
   const [stocks, setStocks] = useState<Stock[]>([]);
@@ -27,16 +38,21 @@ export function useStocks(userId?: string) {
     setLoading(false);
 
     if (data?.length) {
-      setQuotesLoading(true);
-      const tickers = data.map(s => s.ticker);
-      const quotesData = await getQuotes(tickers);
-      if (quotesData.length > 0) {
-        const quotesMap: Record<string, BRAPIQuote> = {};
-        quotesData.forEach(q => { quotesMap[q.symbol] = q; });
-        // Merge instead of replace so a partial failure doesn't wipe existing quotes
-        setQuotes(prev => ({ ...prev, ...quotesMap }));
+      // Only fetch quotes for assets that trade on B3
+      const quotableTickers = data
+        .filter(s => QUOTABLE_TYPES.includes(s.asset_type || 'acao'))
+        .map(s => s.ticker);
+
+      if (quotableTickers.length > 0) {
+        setQuotesLoading(true);
+        const quotesData = await getQuotes(quotableTickers);
+        if (quotesData.length > 0) {
+          const quotesMap: Record<string, BRAPIQuote> = {};
+          quotesData.forEach(q => { quotesMap[q.symbol] = q; });
+          setQuotes(prev => ({ ...prev, ...quotesMap }));
+        }
+        setQuotesLoading(false);
       }
-      setQuotesLoading(false);
     }
   }, [userId]);
 
@@ -75,6 +91,31 @@ export function useStocks(userId?: string) {
     return result;
   }
 
+  async function addFixedIncome(name: string, investedValue: number, fixedData: FixedIncomeData) {
+    if (!userId) return null;
+
+    const result = await supabase
+      .from('stocks')
+      .insert({
+        user_id: userId,
+        ticker: name.toUpperCase(),
+        quantity: 1,
+        avg_price: investedValue,
+        asset_type: 'renda_fixa' as AssetType,
+        purchase_date: fixedData.purchase_date,
+        yield_rate: fixedData.yield_rate,
+        yield_type: fixedData.yield_type,
+        institution: fixedData.institution,
+        maturity_date: fixedData.maturity_date,
+        admin_fee: fixedData.admin_fee,
+      })
+      .select()
+      .single();
+
+    await fetchStocks();
+    return result;
+  }
+
   async function removeStock(id: string) {
     const { error } = await supabase.from('stocks').delete().eq('id', id);
     if (!error) setStocks(prev => prev.filter(s => s.id !== id));
@@ -93,12 +134,13 @@ export function useStocks(userId?: string) {
   }
 
   const stocksWithQuotes: StockWithQuote[] = stocks.map(stock => {
-    const quote = quotes[stock.ticker] || null;
+    const isFixedIncome = stock.asset_type === 'renda_fixa';
+    const quote = isFixedIncome ? null : (quotes[stock.ticker] || null);
     const currentPrice = quote?.regularMarketPrice || stock.avg_price;
     const currentValue = currentPrice * stock.quantity;
     const totalCost = stock.avg_price * stock.quantity;
-    const profitLoss = currentValue - totalCost;
-    const profitLossPercent = totalCost > 0 ? (profitLoss / totalCost) * 100 : 0;
+    const profitLoss = isFixedIncome ? 0 : (currentValue - totalCost);
+    const profitLossPercent = isFixedIncome ? (stock.yield_rate || 0) : (totalCost > 0 ? (profitLoss / totalCost) * 100 : 0);
     return { ...stock, quote, currentValue, totalCost, profitLoss, profitLossPercent };
   });
 
@@ -112,6 +154,7 @@ export function useStocks(userId?: string) {
     loading,
     quotesLoading,
     addStock,
+    addFixedIncome,
     removeStock,
     updateStock,
     refetch: fetchStocks,
