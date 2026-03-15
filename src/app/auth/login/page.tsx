@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/lib/hooks/useAuth';
@@ -17,6 +17,9 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
+  const [showReset, setShowReset] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
   const { signIn } = useAuth();
   const router = useRouter();
 
@@ -31,6 +34,7 @@ export default function LoginPage() {
         toast.error('Confirme seu email antes de entrar.', { duration: 5000 });
       } else if (msg.includes('invalid login') || msg.includes('invalid credentials') || msg.includes('wrong password')) {
         toast.error('Email ou senha incorretos');
+        setShowReset(true);
       } else {
         toast.error(error.message || 'Erro ao entrar');
       }
@@ -39,6 +43,21 @@ export default function LoginPage() {
       router.push('/dashboard');
     }
     setLoading(false);
+  }
+
+  async function handleResetPassword() {
+    if (!email) { toast.error('Digite seu email primeiro'); return; }
+    setResetLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/reset-password`,
+    });
+    setResetLoading(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      setResetSent(true);
+      toast.success('Email de redefinição enviado!');
+    }
   }
 
   return (
@@ -76,22 +95,34 @@ export default function LoginPage() {
               type="email"
               placeholder="seu@email.com"
               value={email}
-              onChange={e => setEmail(e.target.value)}
+              onChange={e => { setEmail(e.target.value); setShowReset(false); setResetSent(false); }}
               required
             />
-            <Input
-              label="Senha"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-            />
+            <div className="space-y-1">
+              <Input
+                label="Senha"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+              />
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowReset(r => !r)}
+                  className="text-xs text-[#475569] hover:text-blue-400 transition-colors"
+                >
+                  Esqueceu a senha?
+                </button>
+              </div>
+            </div>
             <Button type="submit" fullWidth loading={loading} size="lg">
               Entrar
             </Button>
           </form>
 
+          {/* Email not confirmed banner */}
           {needsConfirmation && (
             <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 text-sm text-amber-300 space-y-2">
               <p className="font-medium">📧 Email não confirmado</p>
@@ -112,6 +143,44 @@ export default function LoginPage() {
               </button>
             </div>
           )}
+
+          {/* Reset password panel */}
+          <AnimatePresence>
+            {(showReset || resetSent) && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                {resetSent ? (
+                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-sm text-emerald-300 space-y-1">
+                    <p className="font-medium">✅ Email enviado!</p>
+                    <p className="text-xs text-emerald-400/70">
+                      Verifique sua caixa de entrada em <span className="font-medium">{email}</span> e siga o link para redefinir a senha.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-4 space-y-3">
+                    <p className="text-sm font-medium text-[#94a3b8]">🔑 Redefinir senha</p>
+                    <p className="text-xs text-[#475569]">
+                      Enviaremos um link de redefinição para <span className="text-[#94a3b8]">{email || 'seu email'}</span>.
+                    </p>
+                    <Button
+                      type="button"
+                      onClick={handleResetPassword}
+                      loading={resetLoading}
+                      size="sm"
+                      fullWidth
+                      variant="secondary"
+                    >
+                      Enviar link de redefinição
+                    </Button>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <p className="text-center text-sm text-[#475569] pt-1">
             Não tem conta?{' '}
