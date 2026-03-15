@@ -35,32 +35,34 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center p-6">
       <motion.div
-        className="w-full max-w-sm"
+        className="w-full max-w-md"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-[#0066FF] rounded-2xl flex items-center justify-center text-2xl font-bold text-white mx-auto mb-4 glow-blue">
+        {/* Logo */}
+        <div className="text-center mb-10">
+          <div className="w-20 h-20 bg-[#0066FF] rounded-3xl flex items-center justify-center text-3xl font-bold text-white mx-auto mb-5 shadow-lg shadow-[#0066FF]/30">
             F
           </div>
-          <h1 className="text-2xl font-bold text-white">FinanceApp</h1>
-          <p className="text-[#666666] text-sm mt-1">Comece sua jornada financeira</p>
+          <h1 className="text-3xl font-bold text-white tracking-tight">FinanceApp</h1>
+          <p className="text-[#666666] text-sm mt-2">Comece sua jornada financeira</p>
         </div>
 
-        <div className="bg-[#111111] border border-[#2A2A2A] rounded-2xl p-6 space-y-4">
-          <div>
-            <h2 className="text-lg font-semibold text-white">Criar conta</h2>
+        {/* Card */}
+        <div className="bg-[#111111] border border-[#2A2A2A] rounded-2xl p-8 space-y-6">
+          <div className="space-y-1">
+            <h2 className="text-xl font-semibold text-white">Criar conta</h2>
             <p className="text-sm text-[#666666]">É grátis e leva menos de 1 minuto</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <Input
               label="Nome"
               type="text"
-              placeholder="Seu nome"
+              placeholder="Seu nome completo"
               value={name}
               onChange={e => setName(e.target.value)}
               required
@@ -81,12 +83,12 @@ export default function RegisterPage() {
               onChange={e => setPassword(e.target.value)}
               required
             />
-            <Button type="submit" fullWidth loading={loading} size="lg">
+            <Button type="submit" fullWidth loading={loading} size="lg" className="mt-2">
               Criar conta gratuita
             </Button>
           </form>
 
-          <p className="text-center text-sm text-[#666666]">
+          <p className="text-center text-sm text-[#666666] pt-2">
             Já tem conta?{' '}
             <Link href="/auth/login" className="text-[#0066FF] hover:underline font-medium">
               Entrar
@@ -95,8 +97,8 @@ export default function RegisterPage() {
         </div>
 
         {/* Gamification teaser */}
-        <div className="mt-4 bg-[#0066FF]/10 border border-[#0066FF]/20 rounded-xl p-4">
-          <p className="text-xs text-[#00AAFF] text-center">
+        <div className="mt-5 bg-[#0066FF]/10 border border-[#0066FF]/20 rounded-xl px-5 py-4">
+          <p className="text-xs text-[#00AAFF] text-center leading-relaxed">
             🎮 Ganhe XP, suba de nível e conquiste badges enquanto organiza suas finanças!
           </p>
         </div>
