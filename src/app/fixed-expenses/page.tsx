@@ -1,0 +1,169 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import { Plus, Trash2, ToggleLeft, ToggleRight, CheckCircle2 } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { useAuth } from '@/lib/hooks/useAuth';
+import { useFixedExpenses } from '@/lib/hooks/useFixedExpenses';
+import { AppLayout } from '@/components/layout/AppLayout';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Modal } from '@/components/ui/Modal';
+import { Input, Select } from '@/components/ui/Input';
+import { CATEGORIES } from '@/types';
+import { formatCurrency } from '@/lib/utils/format';
+
+const statusConfig = {
+  paid: { label: 'Pago', color: '#10b981', bg: 'bg-emerald-500/10 border-emerald-500/20', dot: '🟢' },
+  overdue: { label: 'Vencido', color: '#ef4444', bg: 'bg-red-500/10 border-red-500/20', dot: '🔴' },
+  upcoming: { label: 'Vence em breve', color: '#f59e0b', bg: 'bg-amber-500/10 border-amber-500/20', dot: '🟡' },
+  normal: { label: 'Pendente', color: '#475569', bg: 'bg-[#1e1e32]/50 border-[#2a2a45]', dot: '⚪' },
+};
+
+export default function FixedExpensesPage() {
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const { expenses, loading, createExpense, markAsPaid, deleteExpense, toggleExpense, getStatus, isPaid, totalMonthly } = useFixedExpenses(user?.id);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ name: '', amount: '', category: 'contas', due_day: '10' });
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && !user) router.push('/auth/login');
+  }, [authLoading, user, router]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const amount = parseFloat(form.amount.replace(/\./g, '').replace(',', '.')) || 0;
+    if (!form.name || amount <= 0) { toast.error('Preencha todos os campos'); return; }
+    setSubmitting(true);
+    const { error } = await createExpense({ name: form.name, amount, category: form.category, due_day: parseInt(form.due_day), is_active: true }) || {};
+    if (error) toast.error('Erro ao criar gasto fixo');
+    else { toast.success('Gasto fixo cadastrado!'); setForm({ name: '', amount: '', category: 'contas', due_day: '10' }); setShowForm(false); }
+    setSubmitting(false);
+  }
+
+  const paidAmount = expenses.filter(e => e.is_active && isPaid(e.id)).reduce((s, e) => s + e.amount, 0);
+  const pendingAmount = expenses.filter(e => e.is_active && !isPaid(e.id)).reduce((s, e) => s + e.amount, 0);
+  const paidCount = expenses.filter(e => isPaid(e.id)).length;
+
+  return (
+    <AppLayout>
+      <div className="max-w-3xl mx-auto space-y-7">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Gastos Fixos</h1>
+            <p className="text-[#475569] text-sm mt-1">{paidCount}/{expenses.filter(e => e.is_active).length} pagos este mês</p>
+          </div>
+          <Button onClick={() => setShowForm(true)} size="sm">
+            <Plus size={15} /> Novo
+          </Button>
+        </div>
+
+        {/* Summary */}
+        <div className="bg-[#0f0f1a] border border-[#1e1e32] rounded-2xl p-6 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-red-500/[0.06] to-transparent" />
+          <div className="absolute -top-16 -right-16 w-48 h-48 bg-red-500/10 rounded-full blur-3xl" />
+          <div className="relative z-10">
+            <p className="text-xs text-[#475569] font-semibold uppercase tracking-widest mb-2">Total Mensal Fixo</p>
+            <p className="text-4xl font-bold text-red-400 font-mono-numbers mb-6">{formatCurrency(totalMonthly)}</p>
+            <div className="flex gap-6">
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-8 bg-emerald-500 rounded-full" />
+                <div>
+                  <p className="text-[11px] text-[#475569] uppercase tracking-wide font-medium">Pago</p>
+                  <p className="text-sm font-bold text-emerald-400 font-mono-numbers">{formatCurrency(paidAmount)}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-8 bg-amber-500 rounded-full" />
+                <div>
+                  <p className="text-[11px] text-[#475569] uppercase tracking-wide font-medium">Pendente</p>
+                  <p className="text-sm font-bold text-amber-400 font-mono-numbers">{formatCurrency(pendingAmount)}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* List */}
+        <Card>
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : expenses.length === 0 ? (
+            <div className="text-center py-14">
+              <p className="text-4xl mb-3">📅</p>
+              <p className="text-[#475569] mb-4">Nenhum gasto fixo cadastrado</p>
+              <Button onClick={() => setShowForm(true)} size="sm"><Plus size={15} /> Cadastrar</Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {expenses.map((expense, i) => {
+                const status = getStatus(expense);
+                const cfg = statusConfig[status];
+                const category = CATEGORIES.find(c => c.id === expense.category);
+                return (
+                  <motion.div
+                    key={expense.id}
+                    className={`flex items-center gap-4 p-4 rounded-xl border ${cfg.bg} ${!expense.is_active ? 'opacity-40' : ''} transition-all duration-200`}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: expense.is_active ? 1 : 0.4, y: 0 }}
+                    transition={{ delay: i * 0.04 }}
+                  >
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center text-base flex-shrink-0"
+                      style={{ backgroundColor: `${category?.color || '#3b82f6'}15` }}
+                    >
+                      {category?.icon || '📄'}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-semibold text-[#e2e8f0]">{expense.name}</p>
+                        <span className="text-xs px-2 py-0.5 rounded-full border" style={{ color: cfg.color, borderColor: `${cfg.color}30`, backgroundColor: `${cfg.color}10` }}>
+                          {cfg.dot} {cfg.label}
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#475569] mt-0.5">Vence dia {expense.due_day}</p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <p className="text-base font-bold text-[#e2e8f0] font-mono-numbers">{formatCurrency(expense.amount)}</p>
+                      <div className="flex items-center gap-1">
+                        {!isPaid(expense.id) && expense.is_active && (
+                          <button onClick={() => { markAsPaid(expense.id); toast.success('Pago! +10 XP 🎉'); }} className="p-1.5 hover:text-emerald-400 text-[#334155] transition-colors rounded-lg hover:bg-emerald-500/10" title="Marcar como pago">
+                            <CheckCircle2 size={16} />
+                          </button>
+                        )}
+                        <button onClick={() => toggleExpense(expense.id, !expense.is_active)} className="p-1.5 text-[#334155] hover:text-white transition-colors rounded-lg hover:bg-white/5">
+                          {expense.is_active ? <ToggleRight size={16} className="text-blue-400" /> : <ToggleLeft size={16} />}
+                        </button>
+                        <button onClick={() => deleteExpense(expense.id).then(() => toast.success('Removido'))} className="p-1.5 hover:text-red-400 text-[#334155] transition-colors rounded-lg hover:bg-red-500/10">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+        </Card>
+
+        <Modal isOpen={showForm} onClose={() => setShowForm(false)} title="Novo Gasto Fixo">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Input label="Nome" placeholder="Ex: Aluguel" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required />
+            <Input label="Valor" prefix="R$" placeholder="0,00" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} inputMode="numeric" required />
+            <Select label="Categoria" value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} options={CATEGORIES.map(c => ({ value: c.id, label: c.name, icon: c.icon }))} />
+            <Input label="Dia de Vencimento" type="number" min="1" max="31" value={form.due_day} onChange={e => setForm(p => ({ ...p, due_day: e.target.value }))} required />
+            <Button type="submit" fullWidth loading={submitting} size="lg">Cadastrar Gasto Fixo</Button>
+          </form>
+        </Modal>
+      </div>
+    </AppLayout>
+  );
+}
