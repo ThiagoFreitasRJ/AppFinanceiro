@@ -51,29 +51,10 @@ export async function getQuote(ticker: string): Promise<BRAPIQuote | null> {
 
 export async function getQuotes(tickers: string[]): Promise<BRAPIQuote[]> {
   if (!tickers.length) return [];
-  try {
-    const symbols = tickers.join(',');
-    const res = await fetch(`${BRAPI_BASE_URL}/quote/${symbols}${tokenParam('?')}`, {
-      cache: 'no-store',
-    });
-    if (!res.ok) {
-      // Fallback: fetch individually so a single failure doesn't wipe all quotes
-      const results = await Promise.all(tickers.map(t => getQuote(t)));
-      return results.filter((q): q is BRAPIQuote => q !== null);
-    }
-    const data: BRAPIResponse = await res.json();
-    const results = data.results || [];
-    // If batch returned fewer results than expected, fill in missing ones individually
-    if (results.length < tickers.length) {
-      const found = new Set(results.map(r => r.symbol));
-      const missing = tickers.filter(t => !found.has(t));
-      const extras = await Promise.all(missing.map(t => getQuote(t)));
-      extras.forEach(q => { if (q) results.push(q); });
-    }
-    return results;
-  } catch {
-    return [];
-  }
+  // Fetch each ticker individually so FIIs, ETFs and BDRs all work reliably.
+  // BRAPI batch calls can silently drop non-stock assets on free plans.
+  const results = await Promise.all(tickers.map(t => getQuote(t)));
+  return results.filter((q): q is BRAPIQuote => q !== null);
 }
 
 export async function getHistory(ticker: string, range: string): Promise<BRAPIQuote | null> {
