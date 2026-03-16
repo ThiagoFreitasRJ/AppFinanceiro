@@ -128,6 +128,107 @@ export const PAYMENT_METHODS = [
   { id: 'transferencia',name: 'Transferência', icon: '🏦' },
 ] as const;
 
+export type DebtType = 'cartao' | 'emprestimo' | 'financiamento' | 'cheque_especial' | 'pessoal';
+
+export interface Debt {
+  id: string;
+  user_id: string;
+  name: string;
+  type: DebtType;
+  total_amount: number;
+  remaining_amount: number;
+  installments_total: number;
+  installments_paid: number;
+  installment_value: number;
+  interest_rate?: number | null;
+  start_date: string;
+  due_day: number;
+  creditor?: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface DebtPayment {
+  id: string;
+  debt_id: string;
+  amount: number;
+  payment_date: string;
+  installment_number: number;
+  created_at: string;
+}
+
+export const DEBT_TYPES: { id: DebtType; label: string; icon: string }[] = [
+  { id: 'cartao',         label: 'Cartão de Crédito', icon: '💳' },
+  { id: 'emprestimo',     label: 'Empréstimo',         icon: '🏦' },
+  { id: 'financiamento',  label: 'Financiamento',      icon: '🏠' },
+  { id: 'cheque_especial',label: 'Cheque Especial',    icon: '📋' },
+  { id: 'pessoal',        label: 'Dívida Pessoal',     icon: '🤝' },
+];
+
+export type SubscriptionCategory = 'streaming' | 'musica' | 'cloud' | 'software' | 'jogos' | 'noticias' | 'fitness' | 'outros';
+export type BillingCycle = 'mensal' | 'trimestral' | 'semestral' | 'anual';
+
+export interface Subscription {
+  id: string;
+  user_id: string;
+  name: string;
+  category: SubscriptionCategory;
+  amount: number;
+  billing_cycle: BillingCycle;
+  billing_day: number;
+  is_active: boolean;
+  logo_url?: string | null;
+  created_at: string;
+}
+
+export const SUBSCRIPTION_CATEGORIES: { id: SubscriptionCategory; label: string; icon: string }[] = [
+  { id: 'streaming', label: 'Streaming',  icon: '🎬' },
+  { id: 'musica',    label: 'Música',     icon: '🎵' },
+  { id: 'cloud',     label: 'Cloud',      icon: '☁️' },
+  { id: 'software',  label: 'Software',   icon: '💻' },
+  { id: 'jogos',     label: 'Jogos',      icon: '🎮' },
+  { id: 'noticias',  label: 'Notícias',   icon: '📰' },
+  { id: 'fitness',   label: 'Fitness',    icon: '💪' },
+  { id: 'outros',    label: 'Outros',     icon: '➕' },
+];
+
+export const BILLING_CYCLES: { id: BillingCycle; label: string; months: number }[] = [
+  { id: 'mensal',     label: 'Mensal',     months: 1  },
+  { id: 'trimestral', label: 'Trimestral', months: 3  },
+  { id: 'semestral',  label: 'Semestral',  months: 6  },
+  { id: 'anual',      label: 'Anual',      months: 12 },
+];
+
+export const SUBSCRIPTION_LOGOS: Record<string, string> = {
+  netflix:       'https://logo.clearbit.com/netflix.com',
+  spotify:       'https://logo.clearbit.com/spotify.com',
+  amazon:        'https://logo.clearbit.com/amazon.com',
+  'disney+':     'https://logo.clearbit.com/disneyplus.com',
+  'disney plus': 'https://logo.clearbit.com/disneyplus.com',
+  hbo:           'https://logo.clearbit.com/hbomax.com',
+  apple:         'https://logo.clearbit.com/apple.com',
+  youtube:       'https://logo.clearbit.com/youtube.com',
+  chatgpt:       'https://logo.clearbit.com/openai.com',
+  openai:        'https://logo.clearbit.com/openai.com',
+  github:        'https://logo.clearbit.com/github.com',
+  dropbox:       'https://logo.clearbit.com/dropbox.com',
+  notion:        'https://logo.clearbit.com/notion.so',
+  figma:         'https://logo.clearbit.com/figma.com',
+  adobe:         'https://logo.clearbit.com/adobe.com',
+  canva:         'https://logo.clearbit.com/canva.com',
+  linkedin:      'https://logo.clearbit.com/linkedin.com',
+  duolingo:      'https://logo.clearbit.com/duolingo.com',
+};
+
+export interface Streak {
+  id: string;
+  user_id: string;
+  type: string;
+  current_count: number;
+  best_count: number;
+  last_date: string | null;
+}
+
 export const ACHIEVEMENTS_DATA = [
   { code: 'first_transaction', name: 'Primeiro Passo',    description: 'Registrar primeira transação',   icon: '👣', category: 'Primeiros Passos' },
   { code: 'first_deposit',     name: 'Cofrinho',          description: 'Primeiro depósito em objetivo',  icon: '🐷', category: 'Primeiros Passos' },
