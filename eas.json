@@ -3,14 +3,6 @@
     "version": ">= 12.0.0"
   },
   "build": {
-    "development": {
-      "developmentClient": true,
-      "distribution": "internal",
-      "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "https://ceianaxbpeihqmyuvmlm.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "COLE_AQUI_A_ANON_KEY"
-      }
-    },
     "preview": {
       "distribution": "internal",
       "android": {
@@ -18,16 +10,7 @@
       },
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://ceianaxbpeihqmyuvmlm.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "COLE_AQUI_A_ANON_KEY"
-      }
-    },
-    "production": {
-      "android": {
-        "buildType": "apk"
-      },
-      "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "https://ceianaxbpeihqmyuvmlm.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "COLE_AQUI_A_ANON_KEY"
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNlaWFuYXhicGVpaHFteXV2bWxtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1NDUyMTEsImV4cCI6MjA4OTEyMTIxMX0.-WOOzHAVzFOK1tJ_rT-L5Yw6TYxe_pWgcnpuGtSlMNo"
       }
     }
   },
